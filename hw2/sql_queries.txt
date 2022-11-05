@@ -1,0 +1,90 @@
+# Исполнитель с максимальным числом скробблов
+select artist_mb, scrobbles_lastfm
+from artists
+    sort by scrobbles_lastfm desc
+limit 1;
+
+
+artist_mb,scrobbles_lastfm
+The Beatles,517126254
+
+
+
+
+
+
+# Самый популярный тэг на ластфм
+select tag, sum(scrobbles_lastfm) as sum
+from artists
+         lateral view explode(split(tags_lastfm, "; ")) a as tag
+group by tag
+    sort by sum desc
+limit 1;
+
+
+tag,sum
+seen live,89647094995
+
+
+
+
+
+
+# Самые популярные исполнители 10 самых популярных тегов ластфм
+select c.tag, artist
+from
+(select
+  b.tag,
+  max(b.scrobbles_lastfm) as scrobbles,
+  max(b.artist_lastfm) as artist
+from (select tag, scrobbles_lastfm, artist_lastfm from artists
+         lateral view explode(split(tags_lastfm, "; ")) a as tag) b
+inner join (select
+              tag,
+              max(scrobbles_lastfm) as maxValue
+            from (select tag, scrobbles_lastfm from artists
+         lateral view explode(split(tags_lastfm, "; ")) a AS tag) a
+            group by tag) a on
+  a.tag = b.tag AND a.maxValue = b.scrobbles_lastfm
+group by b.tag) c
+inner join
+(select tag, sum(scrobbles_lastfm) as sum
+from artists
+         lateral view explode(split(tags_lastfm, "; ")) a AS tag
+group by tag
+    sort by sum desc
+limit 10) d on c.tag = d.tag;
+
+
+tag,artist
+00s,Radiohead
+alternative,Radiohead
+alternative rock,Radiohead
+american,Linkin Park
+electronic,Radiohead
+indie,Radiohead
+male vocalists,Radiohead
+pop,The Beatles
+rock,The Beatles
+seen live,Radiohead
+
+
+
+
+
+
+# Самые популярные страны по сумме скробблов (если страна указана)
+select country_lastfm, sum(scrobbles_lastfm) as sum
+from artists
+group by country_lastfm
+having country_lastfm != ""
+sort by sum desc
+limit 5;
+
+
+country_lastfm,sum
+United States,33939871098
+United Kingdom,15640819752
+Germany,3483646542
+Canada,3298698258
+Sweden,3102013882
